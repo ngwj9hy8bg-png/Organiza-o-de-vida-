@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azulê — Controle Financeiro Pessoal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            600: '#1e3a8a',
+                            700: '#1e3a8a',
+                            800: '#172554',
+                            900: '#0f172a',
+                        },
+                        brand: {
+                            DEFAULT: '#0B192C',
+                            light: '#1E3E62',
+                            accent: '#3F72AF',
+                            subtle: '#F8F9FA'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #pdf-modal-content, #pdf-modal-content * {
+                visibility: visible;
+            }
+            #pdf-modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                background: white !important;
+                color: black !important;
+                box-shadow: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col antialiased selection:bg-brand selection:text-white">
+
+    <!-- HEADER -->
+    <header class="bg-brand text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-xl shadow-inner border border-blue-400/30">
+                    Az
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Azulê</h1>
+                    <p class="text-xs text-slate-300 font-light">Controle Financeiro Simples e Elegante</p>
+                </div>
+            </div>
+            
+            <!-- Ações Rápidas Topo -->
+            <div class="flex items-center gap-2 flex-wrap justify-center">
+                <button onclick="openPdfModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-xl text-sm transition-all shadow-sm flex items-center gap-2 border border-blue-500/40">
+                    <i class="fa-solid fa-file-pdf"></i> Baixar PDF do mês
+                </button>
+                <button onclick="switchTab('dashboard')" class="nav-btn bg-slate-800/80 hover:bg-slate-800 text-slate-200 px-3 py-2 rounded-xl text-sm transition-all border border-slate-700/60 active-tab" data-target="dashboard">
+                    <i class="fa-solid fa-house mr-1"></i> Início
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800">
+            <span id="toast-icon" class="text-emerald-400 text-lg"><i class="fa-solid fa-circle-check"></i></span>
+            <p id="toast-msg" class="text-sm font-medium">Ação realizada com sucesso!</p>
+        </div>
+
+        <!-- 1. TELA INICIAL (DASHBOARD) -->
+        <section id="tab-dashboard" class="space-y-6">
+            
+            <!-- Cartão Principal: Dinheiro Livre -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-50 rounded-full pointer-events-none"></div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">Disponibilidade</span>
+                        <h2 class="text-lg font-medium text-slate-700 mt-2">Dinheiro livre para gastar</h2>
+                        <div class="text-3xl sm:text-4xl font-bold text-brand mt-1" id="display-livre">R$ 0,00</div>
+                        <p class="text-xs text-slate-400 mt-1">Informado manualmente por você (não afeta metas e nem calcula saldo automático).</p>
+                    </div>
+                    <button onclick="openFreeMoneyModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl text-sm transition-all border border-slate-300/60 flex items-center gap-2 self-start sm:self-auto">
+                        <i class="fa-solid fa-pen-to-square text-blue-600"></i> Atualizar Valor
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navegação em Grade / Atalhos Principais -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <button onclick="openModal('transaction-modal')" class="bg-white hover:bg-blue-50/50 p-5 rounded-2xl shadow-sm border border-slate-200/80 text-left transition-all hover:border-blue-200 group">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 text-sm">Movimentação</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Entradas e saídas</p>
+                </button>
+
+                <button onclick="switchTab('receivables')" class="bg-white hover:bg-blue-50/50 p-5 rounded-2xl shadow-sm border border-slate-200/80 text-left transition-all hover:border-blue-200 group">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 text-sm">Tenho a Receber</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Vendas e empréstimos</p>
+                </button>
+
+                <button onclick="switchTab('goals')" class="bg-white hover:bg-blue-50/50 p-5 rounded-2xl shadow-sm border border-slate-200/80 text-left transition-all hover:border-blue-200 group">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 text-sm">Minhas Metas</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Objetivos guardados</p>
+                </button>
+
+                <button onclick="switchTab('statement')" class="bg-white hover:bg-blue-50/50 p-5 rounded-2xl shadow-sm border border-slate-200/80 text-left transition-all hover:border-blue-200 group">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 text-sm">Extrato Mensal</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Histórico e resumo</p>
+                </button>
+            </div>
+
+            <!-- Resumo Rápido do Mês Atual -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-blue-600"></i> Resumo do Mês Atual
+                    </h3>
+                    <span id="current-month-label" class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">--</span>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
+                        <span class="text-xs text-emerald-700 font-medium">Entradas do Mês</span>
+                        <div class="text-xl font-bold text-emerald-700 mt-1" id="dash-entradas">R$ 0,00</div>
+                    </div>
+                    <div class="bg-rose-50/60 p-4 rounded-xl border border-rose-100">
+                        <span class="text-xs text-rose-700 font-medium">Saídas do Mês</span>
+                        <div class="text-xl font-bold text-rose-700 mt-1" id="dash-saidas">R$ 0,00</div>
+                    </div>
+                    <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100">
+                        <span class="text-xs text-blue-700 font-medium">Saldo das Movimentações</span>
+                        <div class="text-xl font-bold text-blue-800 mt-1" id="dash-saldo">R$ 0,00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atalhos de Ação Rápida Adicionais -->
+            <div class="bg-blue-900/5 rounded-2xl p-4 border border-blue-900/10 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-plus"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-800">Registrar Venda ou Empréstimo</h4>
+                        <p class="text-xs text-slate-500">Adicione novos valores pendentes a receber.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openModal('sale-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition-all shadow-sm">
+                        <i class="fa-solid fa-tag mr-1"></i> Nova Venda
+                    </button>
+                    <button onclick="openModal('loan-modal')" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition-all shadow-sm">
+                        <i class="fa-solid fa-handshake mr-1"></i> Novo Empréstimo
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SEÇÃO: TENHO A RECEBER (VENDAS E EMPRÉSTIMOS) -->
+        <section id="tab-receivables" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i> Tenho a Receber
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Gerencie suas vendas de objetos e dinheiro emprestado.</p>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="openModal('sale-modal')" class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-tag"></i> Nova Venda
+                    </button>
+                    <button onclick="openModal('loan-modal')" class="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-handshake"></i> Novo Empréstimo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros de Aba / Status -->
+            <div class="flex gap-2 border-b border-slate-200 pb-2">
+                <button onclick="filterReceivables('all')" id="rec-tab-all" class="rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white transition-all">Todos Pendentes</button>
+                <button onclick="filterReceivables('sales')" id="rec-tab-sales" class="rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Vendas</button>
+                <button onclick="filterReceivables('loans')" id="rec-tab-loans" class="rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Empréstimos</button>
+            </div>
+
+            <!-- Lista de Valores a Receber -->
+            <div id="receivables-list" class="grid grid-cols-1 gap-3">
+                <!-- Preenchido via JS -->
+            </div>
+        </section>
+
+        <!-- 3. SEÇÃO: MINHAS METAS -->
+        <section id="tab-goals" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-bullseye text-amber-600"></i> Minhas Metas
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Defina objetivos e guarde valores independentemente.</p>
+                </div>
+                <button onclick="openModal('goal-modal')" class="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Nova Meta
+                </button>
+            </div>
+
+            <div id="goals-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Preenchido via JS -->
+            </div>
+        </section>
+
+        <!-- 4. SEÇÃO: EXTRATO MENSAL -->
+        <section id="tab-statement" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-receipt text-indigo-600"></i> Extrato Mensal
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">Consulte movimentações, entradas e saídas por período.</p>
+                    </div>
+                    
+                    <!-- Seletor de Mês/Ano -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <select id="statement-month" onchange="renderStatement()" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-3 py-2 outline-none focus:border-blue-600">
+                            <!-- Meses preenchidos via JS -->
+                        </select>
+                        <select id="statement-year" onchange="renderStatement()" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-3 py-2 outline-none focus:border-blue-600">
+                            <!-- Anos preenchidos via JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cards Resumo do Período -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
+                        <span class="text-xs text-emerald-700 font-medium">Entradas Totais</span>
+                        <div class="text-xl font-bold text-emerald-700 mt-1" id="stmt-entradas">R$ 0,00</div>
+                    </div>
+                    <div class="bg-rose-50/60 p-4 rounded-xl border border-rose-100">
+                        <span class="text-xs text-rose-700 font-medium">Saídas Totais</span>
+                        <div class="text-xl font-bold text-rose-700 mt-1" id="stmt-saidas">R$ 0,00</div>
+                    </div>
+                    <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
+                        <span class="text-xs text-indigo-700 font-medium">Diferença (Balanço)</span>
+                        <div class="text-xl font-bold text-indigo-800 mt-1" id="stmt-balanco">R$ 0,00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela / Lista de Movimentações -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="p-4 border-b border-slate-200 font-semibold text-slate-800 text-sm flex items-center justify-between">
+                    <span>Movimentações do Mês</span>
+                    <button onclick="openModal('transaction-modal')" class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Adicionar nova
+                    </button>
+                </div>
+                <div id="statement-list" class="divide-y divide-slate-100">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="max-w-5xl mx-auto w-full px-4 py-8 text-center text-xs text-slate-400 space-y-2 border-t border-slate-200/60 mt-auto">
+        <p><i class="fa-solid fa-shield-halved text-blue-600 mr-1"></i> Os seus dados ficam armazenados exclusivamente no navegador deste dispositivo (localStorage). Limpar os dados do navegador poderá apagá-los.</p>
+        <p class="font-medium text-slate-500">Azulê &copy; 2026 — Controle Financeiro Pessoal</p>
+    </footer>
+
+    <!-- MODAIS -->
+
+    <!-- Modal: Atualizar Dinheiro Livre -->
+    <div id="free-money-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Atualizar Dinheiro Livre</h3>
+                <button onclick="closeModal('free-money-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Informe o valor total que você tem livre para gastar no momento.</p>
+            <form onsubmit="saveFreeMoney(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Valor (R$)</label>
+                    <input type="number" step="0.01" min="0" id="input-free-money" required placeholder="0,00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600 font-semibold">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('free-money-modal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white">Salvar Valor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Adicionar Movimentação -->
+    <div id="transaction-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Nova Movimentação</h3>
+                <button onclick="closeModal('transaction-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveTransaction(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Tipo de Movimentação</label>
+                    <select id="trans-type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                        <option value="entrada">Entrada (Recebimento)</option>
+                        <option value="saida" selected>Saída (Despesa)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Descrição</label>
+                    <input type="text" id="trans-desc" required placeholder="Ex: Supermercado, Aluguel, Salário..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Valor (R$)</label>
+                        <input type="number" step="0.01" min="0.01" id="trans-value" required placeholder="0,00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Data</label>
+                        <input type="date" id="trans-date" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Categoria (Opcional)</label>
+                    <input type="text" id="trans-cat" placeholder="Ex: Alimentação, Moradia, Lazer..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Observação (Opcional)</label>
+                    <input type="text" id="trans-obs" placeholder="Detalhes adicionais..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('transaction-modal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white">Salvar Movimentação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Venda de Produto ou Objeto -->
+    <div id="sale-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Venda de Produto ou Objeto</h3>
+                <button onclick="closeModal('sale-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveSale(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nome do produto ou objeto</label>
+                    <input type="text" id="sale-item" required placeholder="Ex: Camisa, Bicicleta antiga..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nome do comprador (Opcional)</label>
+                    <input type="text" id="sale-buyer" placeholder="Nome da pessoa..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Valor da venda (R$)</label>
+                        <input type="number" step="0.01" min="0.01" id="sale-value" required placeholder="0,00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Data da venda</label>
+                        <input type="date" id="sale-date" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Tem data de vencimento?</label>
+                    <select id="sale-has-due" onchange="toggleSaleDue()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                        <option value="nao" selected>Não</option>
+                        <option value="sim">Sim</option>
+                    </select>
+                </div>
+                <div id="sale-due-container" class="hidden">
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Data de vencimento</label>
+                    <input type="date" id="sale-due-date" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Situação Inicial</label>
+                    <select id="sale-status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                        <option value="pendente" selected>Pendente de pagamento</option>
+                        <option value="recebido">Recebida</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('sale-modal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white">Salvar Venda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Dinheiro Emprestado -->
+    <div id="loan-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Dinheiro Emprestado</h3>
+                <button onclick="closeModal('loan-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveLoan(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nome da pessoa</label>
+                    <input type="text" id="loan-person" required placeholder="Ex: João Silva..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Valor emprestado (R$)</label>
+                        <input type="number" step="0.01" min="0.01" id="loan-value" required placeholder="0,00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Data do empréstimo</label>
+                        <input type="date" id="loan-date" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Tem data para receber?</label>
+                    <select id="loan-has-due" onchange="toggleLoanDue()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                        <option value="nao" selected>Não</option>
+                        <option value="sim">Sim</option>
+                    </select>
+                </div>
+                <div id="loan-due-container" class="hidden">
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Data prevista para receber</label>
+                    <input type="date" id="loan-due-date" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Situação Inicial</label>
+                    <select id="loan-status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                        <option value="pendente" selected>Pendente</option>
+                        <option value="recebido">Recebido</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('loan-modal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white">Salvar Empréstimo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Criar Meta -->
+    <div id="goal-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Nova Meta Financeira</h3>
+                <button onclick="closeModal('goal-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Defina um nome e o valor total que deseja alcançar. (Metas não podem ser editadas ou excluídas após criadas).</p>
+            <form onsubmit="saveGoal(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Nome da meta</label>
+                    <input type="text" id="goal-name" required placeholder="Ex: Reserva de Emergência, Viagem..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Valor que quero alcançar (R$)</label>
+                    <input type="number" step="0.01" min="0.01" id="goal-target" required placeholder="0,00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('goal-modal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white">Criar Meta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Adicionar Valor Guardado na Meta -->
+    <div id="add-goal-value-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Adicionar Valor Guardado</h3>
+                <button onclick="closeModal('add-goal-value-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveGoalContribution(event)" class="space-y-3.5">
+                <input type="hidden" id="contribution-goal-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Quanto você guardou? (R$)</label>
+                    <input type="number" step="0.01" min="0.01" id="contribution-value" required placeholder="0,00" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Data</label>
+                    <input type="date" id="contribution-date" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm outline-none focus:border-blue-600">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('add-goal-value-modal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Relatório PDF do Mês -->
+    <div id="pdf-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[95vh] flex flex-col">
+            <div class="flex justify-between items-center no-print">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-blue-600"></i> Relatório Financeiro Mensal
+                </h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-print"></i> Imprimir / Salvar PDF
+                    </button>
+                    <button onclick="closeModal('pdf-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+            </div>
+
+            <!-- Seleção de Mês/Ano para o PDF -->
+            <div class="flex flex-wrap items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 no-print">
+                <span class="text-xs font-semibold text-slate-700">Selecionar Período do Relatório:</span>
+                <select id="pdf-month" onchange="generatePdfPreview()" class="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 outline-none">
+                    <!-- Meses -->
+                </select>
+                <select id="pdf-year" onchange="generatePdfPreview()" class="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 outline-none">
+                    <!-- Anos -->
+                </select>
+            </div>
+
+            <!-- Área Impressível / Visualização do Relatório -->
+            <div id="pdf-modal-content" class="flex-grow overflow-y-auto bg-white p-6 space-y-6 border border-slate-200 rounded-xl text-slate-800">
+                <!-- Cabeçalho do Relatório -->
+                <div class="border-b-2 border-brand pb-4 flex justify-between items-start">
+                    <div>
+                        <h1 class="text-2xl font-bold text-brand">Azulê — Relatório Financeiro Mensal</h1>
+                        <p class="text-sm text-slate-600 font-medium mt-1" id="pdf-period-title">Mês: --/----</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 block">Emitido em</span>
+                        <span class="text-xs font-semibold text-slate-700" id="pdf-emit-date">--/--/----</span>
+                    </div>
+                </div>
+
+                <!-- Dinheiro Livre Informado -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <span class="text-xs text-slate-500 font-medium block">Dinheiro livre para gastar (informado pelo usuário)</span>
+                    <span class="text-lg font-bold text-brand" id="pdf-free-money">R$ 0,00</span>
+                </div>
+
+                <!-- Resumo Geral de Entradas/Saídas -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                        <span class="text-xs text-emerald-700 font-medium block">Total Entradas</span>
+                        <span class="text-base font-bold text-emerald-700" id="pdf-total-entradas">R$ 0,00</span>
+                    </div>
+                    <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        <span class="text-xs text-rose-700 font-medium block">Total Saídas</span>
+                        <span class="text-base font-bold text-rose-700" id="pdf-total-saidas">R$ 0,00</span>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                        <span class="text-xs text-blue-700 font-medium block">Saldo do Mês</span>
+                        <span class="text-base font-bold text-blue-800" id="pdf-total-saldo">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Gráfico Simples CSS Comparativo -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Comparativo Entradas vs Saídas</h4>
+                    <div class="space-y-1.5" id="pdf-chart-container">
+                        <!-- Barras preenchidas via JS -->
+                    </div>
+                </div>
+
+                <!-- Movimentações do Mês -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Movimentações do Mês</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-300 text-slate-600">
+                                    <th class="py-2 pr-2">Data</th>
+                                    <th class="py-2 px-2">Descrição</th>
+                                    <th class="py-2 px-2">Categoria</th>
+                                    <th class="py-2 pl-2 text-right">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pdf-trans-table" class="divide-y divide-slate-100">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vendas Pendentes -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendas Pendentes de Recebimento</h4>
+                    <div id="pdf-sales-list" class="text-xs space-y-1">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- Empréstimos Pendentes -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Empréstimos Pendentes de Recebimento</h4>
+                    <div id="pdf-loans-list" class="text-xs space-y-1">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- Resumo de Metas -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Resumo das Metas</h4>
+                    <div id="pdf-goals-list" class="text-xs space-y-2">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const STORAGE_KEY = 'azule_finance_data_v1';
+
+        // Estrutura de dados inicial
+        let db = {
+            freeMoney: 0,
+            transactions: [], // { id, type ('entrada'|'saida'), description, value, date, category, obs }
+            sales: [],        // { id, item, buyer, value, date, hasDue, dueDate, status ('pendente'|'recebido') }
+            loans: [],        // { id, person, value, date, hasDue, dueDate, status ('pendente'|'recebido') }
+            goals: []         // { id, name, target, contributions: [ { id, value, date } ] }
+        };
+
+        const monthNames = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        // Carregar do localStorage
+        function loadData() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try {
+                    db = JSON.parse(raw);
+                } catch (e) {
+                    console.error('Erro ao ler dados do localStorage:', e);
+                }
+            }
+        }
+
+        // Salvar no localStorage
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        }
+
+        // Gerar ID único
+        function generateId() {
+            return '_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+        }
+
+        // Formatar valores em Reais (R$ 1.000,00)
+        function formatCurrency(val) {
+            return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // Formatar data de AAAA-MM-DD para DD/MM/AAAA
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        // Retornar data atual no formato AAAA-MM-DD para inputs
+        function getTodayString() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Toast Notification
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = msg;
+            if (isError) {
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-exclamation text-rose-400"></i>';
+            } else {
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        // Alternância de Abas
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.target === tabId) {
+                    btn.classList.add('bg-slate-800', 'text-slate-100');
+                    btn.classList.remove('bg-slate-800/80', 'text-slate-200');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'text-slate-100');
+                    btn.classList.add('bg-slate-800/80', 'text-slate-200');
+                }
+            });
+
+            // Atualizar renderizações específicas da aba
+            if (tabId === 'receivables') renderReceivables();
+            if (tabId === 'goals') renderGoals();
+            if (tabId === 'statement') renderStatement();
+        }
+
+        // Gestão de Modais
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            // Definir data de hoje por padrão em inputs de data
+            const dateInputs = document.querySelectorAll(`#${modalId} input[type="date"]`);
+            dateInputs.forEach(input => {
+                if (!input.value) input.value = getTodayString();
+            });
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openFreeMoneyModal() {
+            document.getElementById('input-free-money').value = db.freeMoney || '';
+            openModal('free-money-modal');
+        }
+
+        function saveFreeMoney(e) {
+            e.preventDefault();
+            const val = parseFloat(document.getElementById('input-free-money').value);
+            if (isNaN(val) || val < 0) {
+                showToast('Informe um valor válido e não negativo.', true);
+                return;
+            }
+            db.freeMoney = val;
+            saveData();
+            closeModal('free-money-modal');
+            renderDashboard();
+            showToast('Dinheiro livre atualizado com sucesso!');
+        }
+
+        // Salvar Movimentação
+        function saveTransaction(e) {
+            e.preventDefault();
+            const type = document.getElementById('trans-type').value;
+            const description = document.getElementById('trans-desc').value.trim();
+            const value = parseFloat(document.getElementById('trans-value').value);
+            const date = document.getElementById('trans-date').value;
+            const category = document.getElementById('trans-cat').value.trim();
+            const obs = document.getElementById('trans-obs').value.trim();
+
+            if (isNaN(value) || value <= 0) {
+                showToast('O valor deve ser maior que zero.', true);
+                return;
+            }
+
+            const trans = {
+                id: generateId(),
+                type,
+                description,
+                value,
+                date,
+                category: category || 'Geral',
+                obs
+            };
+
+            db.transactions.push(trans);
+            saveData();
+            closeModal('transaction-modal');
+            e.target.reset();
+            renderDashboard();
+            showToast('Movimentação salva com sucesso!');
+        }
+
+        // Vendas de produtos
+        function toggleSaleDue() {
+            const hasDue = document.getElementById('sale-has-due').value;
+            const container = document.getElementById('sale-due-container');
+            if (hasDue === 'sim') {
+                container.classList.remove('hidden');
+                document.getElementById('sale-due-date').required = true;
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('sale-due-date').required = false;
+            }
+        }
+
+        function saveSale(e) {
+            e.preventDefault();
+            const item = document.getElementById('sale-item').value.trim();
+            const buyer = document.getElementById('sale-buyer').value.trim();
+            const value = parseFloat(document.getElementById('sale-value').value);
+            const date = document.getElementById('sale-date').value;
+            const hasDue = document.getElementById('sale-has-due').value;
+            const dueDate = hasDue === 'sim' ? document.getElementById('sale-due-date').value : '';
+            const status = document.getElementById('sale-status').value;
+
+            if (isNaN(value) || value <= 0) {
+                showToast('Informe um valor válido.', true);
+                return;
+            }
+
+            const sale = {
+                id: generateId(),
+                item,
+                buyer: buyer || 'Não informado',
+                value,
+                date,
+                hasDue,
+                dueDate,
+                status
+            };
+
+            db.sales.push(sale);
+
+            // Se a venda já foi recebida ao cadastrar, adiciona automaticamente como transação de entrada no extrato
+            if (status === 'recebido') {
+                db.transactions.push({
+                    id: generateId(),
+                    type: 'entrada',
+                    description: `Venda recebida: ${item} (${buyer})`,
+                    value,
+                    date: getTodayString(),
+                    category: 'Vendas',
+                    obs: 'Recebimento de venda cadastrada'
+                });
+            }
+
+            saveData();
+            closeModal('sale-modal');
+            e.target.reset();
+            toggleSaleDue();
+            renderDashboard();
+            if (document.getElementById('tab-receivables').classList.contains('hidden') === false) {
+                renderReceivables();
+            }
+            showToast('Venda registrada com sucesso!');
+        }
+
+        // Empréstimos
+        function toggleLoanDue() {
+            const hasDue = document.getElementById('loan-has-due').value;
+            const container = document.getElementById('loan-due-container');
+            if (hasDue === 'sim') {
+                container.classList.remove('hidden');
+                document.getElementById('loan-due-date').required = true;
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('loan-due-date').required = false;
+            }
+        }
+
+        function saveLoan(e) {
+            e.preventDefault();
+            const person = document.getElementById('loan-person').value.trim();
+            const value = parseFloat(document.getElementById('loan-value').value);
+            const date = document.getElementById('loan-date').value;
+            const hasDue = document.getElementById('loan-has-due').value;
+            const dueDate = hasDue === 'sim' ? document.getElementById('loan-due-date').value : '';
+            const status = document.getElementById('loan-status').value;
+
+            if (isNaN(value) || value <= 0) {
+                showToast('Informe um valor válido.', true);
+                return;
+            }
+
+            const loan = {
+                id: generateId(),
+                person,
+                value,
+                date,
+                hasDue,
+                dueDate,
+                status
+            };
+
+            db.loans.push(loan);
+
+            // Se o empréstimo foi marcado como recebido (pago de volta)
+            if (status === 'recebido') {
+                db.transactions.push({
+                    id: generateId(),
+                    type: 'entrada',
+                    description: `Empréstimo pago por ${person}`,
+                    value,
+                    date: getTodayString(),
+                    category: 'Empréstimos',
+                    obs: 'Quitação de empréstimo'
+                });
+            }
+
+            saveData();
+            closeModal('loan-modal');
+            e.target.reset();
+            toggleLoanDue();
+            renderDashboard();
+            if (document.getElementById('tab-receivables').classList.contains('hidden') === false) {
+                renderReceivables();
+            }
+            showToast('Empréstimo registrado com sucesso!');
+        }
+
+        // Marcar Venda ou Empréstimo como Recebido (evitando duplicação indevida)
+        function markAsReceived(type, id) {
+            if (type === 'sale') {
+                const sale = db.sales.find(s => s.id === id);
+                if (sale && sale.status !== 'recebido') {
+                    sale.status = 'recebido';
+                    // Adicionar ao extrato financeiro como entrada
+                    db.transactions.push({
+                        id: generateId(),
+                        type: 'entrada',
+                        description: `Venda recebida: ${sale.item} (${sale.buyer})`,
+                        value: sale.value,
+                        date: getTodayString(),
+                        category: 'Vendas',
+                        obs: 'Quitação de venda pendente'
+                    });
+                    saveData();
+                    renderReceivables();
+                    renderDashboard();
+                    showToast('Venda marcada como recebida!');
+                }
+            } else if (type === 'loan') {
+                const loan = db.loans.find(l => l.id === id);
+                if (loan && loan.status !== 'recebido') {
+                    loan.status = 'recebido';
+                    // Adicionar ao extrato financeiro como entrada
+                    db.transactions.push({
+                        id: generateId(),
+                        type: 'entrada',
+                        description: `Empréstimo quitado por ${loan.person}`,
+                        value: loan.value,
+                        date: getTodayString(),
+                        category: 'Empréstimos',
+                        obs: 'Quitação de empréstimo'
+                    });
+                    saveData();
+                    renderReceivables();
+                    renderDashboard();
+                    showToast('Empréstimo marcado como recebido!');
+                }
+            }
+        }
+
+        // Metas Financeiras
+        function saveGoal(e) {
+            e.preventDefault();
+            const name = document.getElementById('goal-name').value.trim();
+            const target = parseFloat(document.getElementById('goal-target').value);
+
+            if (isNaN(target) || target <= 0) {
+                showToast('Informe um valor de meta válido.', true);
+                return;
+            }
+
+            const goal = {
+                id: generateId(),
+                name,
+                target,
+                contributions: []
+            };
+
+            db.goals.push(goal);
+            saveData();
+            closeModal('goal-modal');
+            e.target.reset();
+            renderGoals();
+            showToast('Meta criada com sucesso!');
+        }
+
+        function openAddContributionModal(goalId) {
+            document.getElementById('contribution-goal-id').value = goalId;
+            document.getElementById('contribution-value').value = '';
+            document.getElementById('contribution-date').value = getTodayString();
+            openModal('add-goal-value-modal');
+        }
+
+        function saveGoalContribution(e) {
+            e.preventDefault();
+            const goalId = document.getElementById('contribution-goal-id').value;
+            const value = parseFloat(document.getElementById('contribution-value').value);
+            const date = document.getElementById('contribution-date').value;
+
+            if (isNaN(value) || value <= 0) {
+                showToast('Informe um valor válido.', true);
+                return;
+            }
+
+            const goal = db.goals.find(g => g.id === goalId);
+            if (goal) {
+                goal.contributions.push({
+                    id: generateId(),
+                    value,
+                    date
+                });
+                saveData();
+                closeModal('add-goal-value-modal');
+                renderGoals();
+                showToast('Valor guardado adicionado à meta!');
+            }
+        }
+
+        // Renderizar Dashboard
+        function renderDashboard() {
+            document.getElementById('display-livre').textContent = formatCurrency(db.freeMoney);
+
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            document.getElementById('current-month-label').textContent = `${monthNames[currentMonth]} de ${currentYear}`;
+
+            // Filtrar transações do mês atual
+            const monthTrans = db.transactions.filter(t => {
+                if (!t.date) return false;
+                const parts = t.date.split('-');
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                return y === currentYear && m === currentMonth;
+            });
+
+            let totalEntradas = 0;
+            let totalSaidas = 0;
+
+            monthTrans.forEach(t => {
+                if (t.type === 'entrada') totalEntradas += t.value;
+                if (t.type === 'saida') totalSaidas += t.value;
+            });
+
+            const saldo = totalEntradas - totalSaidas;
+
+            document.getElementById('dash-entradas').textContent = formatCurrency(totalEntradas);
+            document.getElementById('dash-saidas').textContent = formatCurrency(totalSaidas);
+            const saldoEl = document.getElementById('dash-saldo');
+            saldoEl.textContent = formatCurrency(saldo);
+            saldoEl.className = `text-xl font-bold mt-1 ${saldo >= 0 ? 'text-blue-800' : 'text-rose-600'}`;
+        }
+
+        let currentRecFilter = 'all';
+        function filterReceivables(filter) {
+            currentRecFilter = filter;
+            document.querySelectorAll('.rec-filter-btn').forEach(btn => {
+                btn.className = 'rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
+            });
+            if (filter === 'all') document.getElementById('rec-tab-all').className = 'rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white transition-all';
+            if (filter === 'sales') document.getElementById('rec-tab-sales').className = 'rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white transition-all';
+            if (filter === 'loans') document.getElementById('rec-tab-loans').className = 'rec-filter-btn px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white transition-all';
+
+            renderReceivables();
+        }
+
+        // Renderizar Tenho a Receber
+        function renderReceivables() {
+            const container = document.getElementById('receivables-list');
+            container.innerHTML = '';
+
+            let items = [];
+
+            if (currentRecFilter === 'all' || currentRecFilter === 'sales') {
+                db.sales.forEach(s => {
+                    items.push({ type: 'sale', data: s });
+                });
+            }
+
+            if (currentRecFilter === 'all' || currentRecFilter === 'loans') {
+                db.loans.forEach(l => {
+                    items.push({ type: 'loan', data: l });
+                });
+            }
+
+            // Filtrar apenas pendentes ou mostrar tudo com destaque
+            items = items.filter(i => i.data.status === 'pendente');
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
+                        <i class="fa-solid fa-circle-check text-3xl text-emerald-500 mb-2"></i>
+                        <p class="text-sm font-medium text-slate-700">Nenhum valor pendente no momento!</p>
+                        <p class="text-xs text-slate-400 mt-1">Todas as suas vendas e empréstimos estão quitados.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            items.forEach(item => {
+                const isSale = item.type === 'sale';
+                const d = item.data;
+                const badgeColor = isSale ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200';
+                const badgeText = isSale ? 'Venda de Objeto' : 'Dinheiro Emprestado';
+                const labelName = isSale ? `Produto: ${d.item} (Comprador: ${d.buyer})` : `Pessoa: ${d.person}`;
+                const dueText = d.hasDue === 'sim' && d.dueDate ? `Vencimento: ${formatDate(d.dueDate)}` : 'Sem data de vencimento';
+
+                const card = document.createElement('div');
+                card.className = 'bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4';
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-lg border ${badgeColor}">${badgeText}</span>
+                            <span class="text-xs text-slate-400">Data: ${formatDate(d.date)}</span>
+                        </div>
+                        <h4 class="font-semibold text-slate-800 text-base mt-1">${labelName}</h4>
+                        <p class="text-xs text-slate-500">${dueText}</p>
+                    </div>
+                    <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                        <div class="text-right">
+                            <span class="text-xs text-slate-400 block">Valor Pendente</span>
+                            <span class="text-lg font-bold text-slate-800">${formatCurrency(d.value)}</span>
+                        </div>
+                        <button onclick="markAsReceived('${isSale ? 'sale' : 'loan'}', '${d.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-check"></i> Marcar Recebido
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Renderizar Metas
+        function renderGoals() {
+            const container = document.getElementById('goals-list');
+            container.innerHTML = '';
+
+            if (db.goals.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
+                        <i class="fa-solid fa-bullseye text-3xl text-amber-500 mb-2"></i>
+                        <p class="text-sm font-medium text-slate-700">Nenhuma meta cadastrada ainda.</p>
+                        <p class="text-xs text-slate-400 mt-1">Crie sua primeira meta financeira para começar a guardar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            db.goals.forEach(goal => {
+                const totalSaved = goal.contributions.reduce((acc, c) => acc + c.value, 0);
+                const percent = Math.min(100, Math.round((totalSaved / goal.target) * 100));
+                const remaining = Math.max(0, goal.target - totalSaved);
+
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">Meta</span>
+                            <h3 class="font-bold text-slate-800 text-lg mt-1">${goal.name}</h3>
+                        </div>
+                        <button onclick="openAddContributionModal('${goal.id}')" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition-all shadow-sm flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> Adicionar Valor
+                        </button>
+                    </div>
+
+                    <!-- Barra de Progresso -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs font-medium">
+                            <span class="text-slate-600">Progresso (${percent}%)</span>
+                            <span class="text-slate-800">Alvo: ${formatCurrency(goal.target)}</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/60">
+                            <div class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-xs">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                            <span class="text-slate-400 block">Já guardei</span>
+                            <span class="font-bold text-slate-800 text-sm">${formatCurrency(totalSaved)}</span>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                            <span class="text-slate-400 block">Falta atingir</span>
+                            <span class="font-bold text-amber-700 text-sm">${formatCurrency(remaining)}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Inicializar seletores de Meses e Anos
+        function initMonthYearSelectors() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            // Statement selects
+            const stmtMonth = document.getElementById('statement-month');
+            const stmtYear = document.getElementById('statement-year');
+            const pdfMonth = document.getElementById('pdf-month');
+            const pdfYear = document.getElementById('pdf-year');
+
+            stmtMonth.innerHTML = '';
+            pdfMonth.innerHTML = '';
+            monthNames.forEach((name, idx) => {
+                stmtMonth.innerHTML += `<option value="${idx}" ${idx === currentMonth ? 'selected' : ''}>${name}</option>`;
+                pdfMonth.innerHTML += `<option value="${idx}" ${idx === currentMonth ? 'selected' : ''}>${name}</option>`;
+            });
+
+            stmtYear.innerHTML = '';
+            pdfYear.innerHTML = '';
+            for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+                stmtYear.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
+                pdfYear.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
+            }
+        }
+
+        // Renderizar Extrato Mensal
+        function renderStatement() {
+            const m = parseInt(document.getElementById('statement-month').value, 10);
+            const y = parseInt(document.getElementById('statement-year').value, 10);
+
+            const filtered = db.transactions.filter(t => {
+                if (!t.date) return false;
+                const parts = t.date.split('-');
+                return parseInt(parts[0], 10) === y && (parseInt(parts[1], 10) - 1) === m;
+            });
+
+            let totalEntradas = 0;
+            let totalSaidas = 0;
+
+            filtered.forEach(t => {
+                if (t.type === 'entrada') totalEntradas += t.value;
+                if (t.type === 'saida') totalSaidas += t.value;
+            });
+
+            const diff = totalEntradas - totalSaidas;
+
+            document.getElementById('stmt-entradas').textContent = formatCurrency(totalEntradas);
+            document.getElementById('stmt-saidas').textContent = formatCurrency(totalSaidas);
+            const balancoEl = document.getElementById('stmt-balanco');
+            balancoEl.textContent = formatCurrency(diff);
+            balancoEl.className = `text-xl font-bold mt-1 ${diff >= 0 ? 'text-indigo-800' : 'text-rose-600'}`;
+
+            const listContainer = document.getElementById('statement-list');
+            listContainer.innerHTML = '';
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-8 text-center text-slate-400 text-xs">
+                        Nenhuma movimentação registrada neste mês.
+                    </div>
+                `;
+                return;
+            }
+
+            // Ordenar por data decrescente
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            filtered.forEach(t => {
+                const isEntrada = t.type === 'entrada';
+                const row = document.createElement('div');
+                row.className = 'p-4 flex items-center justify-between hover:bg-slate-50 transition-colors';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl ${isEntrada ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} flex items-center justify-center font-bold text-sm">
+                            <i class="fa-solid ${isEntrada ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-800 text-sm">${t.description}</h4>
+                            <p class="text-xs text-slate-400">Data: ${formatDate(t.date)} &bull; Categoria: ${t.category} ${t.obs ? '&bull; ' + t.obs : ''}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-bold text-sm ${isEntrada ? 'text-emerald-600' : 'text-slate-800'}">
+                            ${isEntrada ? '+' : '-'} ${formatCurrency(t.value)}
+                        </span>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
+
+        // Relatório PDF do Mês
+        function openPdfModal() {
+            initMonthYearSelectors();
+            generatePdfPreview();
+            openModal('pdf-modal');
+        }
+
+        function generatePdfPreview() {
+            const m = parseInt(document.getElementById('pdf-month').value, 10);
+            const y = parseInt(document.getElementById('pdf-year').value, 10);
+
+            document.getElementById('pdf-period-title').textContent = `Mês: ${monthNames[m]} de ${y}`;
+            const today = new Date();
+            document.getElementById('pdf-emit-date').textContent = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+            document.getElementById('pdf-free-money').textContent = formatCurrency(db.freeMoney);
+
+            // Filtrar movimentações
+            const filtered = db.transactions.filter(t => {
+                if (!t.date) return false;
+                const parts = t.date.split('-');
+                return parseInt(parts[0], 10) === y && (parseInt(parts[1], 10) - 1) === m;
+            });
+
+            let totalEntradas = 0;
+            let totalSaidas = 0;
+
+            filtered.forEach(t => {
+                if (t.type === 'entrada') totalEntradas += t.value;
+                if (t.type === 'saida') totalSaidas += t.value;
+            });
+
+            const saldo = totalEntradas - totalSaidas;
+
+            document.getElementById('pdf-total-entradas').textContent = formatCurrency(totalEntradas);
+            document.getElementById('pdf-total-saidas').textContent = formatCurrency(totalSaidas);
+            document.getElementById('pdf-total-saldo').textContent = formatCurrency(saldo);
+
+            // Gráfico CSS simples
+            const maxVal = Math.max(totalEntradas, totalSaidas, 1);
+            const entPercent = Math.round((totalEntradas / maxVal) * 100);
+            const saiPercent = Math.round((totalSaidas / maxVal) * 100);
+
+            const chartContainer = document.getElementById('pdf-chart-container');
+            chartContainer.innerHTML = `
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-600">Entradas</span>
+                        <span class="font-bold text-emerald-700">${formatCurrency(totalEntradas)}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                        <div class="bg-emerald-500 h-full rounded-full" style="width: ${entPercent}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-600">Saídas</span>
+                        <span class="font-bold text-rose-700">${formatCurrency(totalSaidas)}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                        <div class="bg-rose-500 h-full rounded-full" style="width: ${saiPercent}%"></div>
+                    </div>
+                </div>
+            `;
+
+            // Tabela de movimentações
+            const tbody = document.getElementById('pdf-trans-table');
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-3 text-center text-slate-400">Nenhuma movimentação neste mês.</td></tr>`;
+            } else {
+                filtered.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-100';
+                    tr.innerHTML = `
+                        <td class="py-2 pr-2">${formatDate(t.date)}</td>
+                        <td class="py-2 px-2 font-medium">${t.description}</td>
+                        <td class="py-2 px-2 text-slate-500">${t.category}</td>
+                        <td class="py-2 pl-2 text-right font-semibold ${t.type === 'entrada' ? 'text-emerald-700' : 'text-slate-800'}">
+                            ${t.type === 'entrada' ? '+' : '-'} ${formatCurrency(t.value)}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Vendas Pendentes
+            const salesList = document.getElementById('pdf-sales-list');
+            salesList.innerHTML = '';
+            const pendingSales = db.sales.filter(s => s.status === 'pendente');
+            if (pendingSales.length === 0) {
+                salesList.innerHTML = `<p class="text-slate-400">Nenhuma venda pendente.</p>`;
+            } else {
+                pendingSales.forEach(s => {
+                    salesList.innerHTML += `<div class="flex justify-between border-b border-slate-100 py-1"><span>${s.item} (Comprador: ${s.buyer})</span><span class="font-semibold">${formatCurrency(s.value)}</span></div>`;
+                });
+            }
+
+            // Empréstimos Pendentes
+            const loansList = document.getElementById('pdf-loans-list');
+            loansList.innerHTML = '';
+            const pendingLoans = db.loans.filter(l => l.status === 'pendente');
+            if (pendingLoans.length === 0) {
+                loansList.innerHTML = `<p class="text-slate-400">Nenhum empréstimo pendente.</p>`;
+            } else {
+                pendingLoans.forEach(l => {
+                    loansList.innerHTML += `<div class="flex justify-between border-b border-slate-100 py-1"><span>Empréstimo para ${l.person}</span><span class="font-semibold">${formatCurrency(l.value)}</span></div>`;
+                });
+            }
+
+            // Metas
+            const goalsList = document.getElementById('pdf-goals-list');
+            goalsList.innerHTML = '';
+            if (db.goals.length === 0) {
+                goalsList.innerHTML = `<p class="text-slate-400">Nenhuma meta cadastrada.</p>`;
+            } else {
+                db.goals.forEach(g => {
+                    const saved = g.contributions.reduce((acc, c) => acc + c.value, 0);
+                    const pct = Math.min(100, Math.round((saved / g.target) * 100));
+                    goalsList.innerHTML += `
+                        <div class="flex justify-between items-center border-b border-slate-100 py-1">
+                            <span>${g.name} (${pct}%)</span>
+                            <span class="font-semibold">Guardado: ${formatCurrency(saved)} / Alvo: ${formatCurrency(g.target)}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        // Inicialização ao carregar a página
+        window.onload = function() {
+            loadData();
+            initMonthYearSelectors();
+            renderDashboard();
+        };
+    </script>
+</body>
+</html>
